@@ -2,19 +2,20 @@ import bpy
 import os.path
 import traceback
 from mathutils import *
+from . import readerutils
 
-def read_until_line_containing(reader, targetStr):
-    line = reader.readline()
-    
-    while targetStr not in line and line != '':
-        line = reader.readline()
-        
-    return line
-        
+def import_skel_from_file(filepath):
+    skelname = os.path.splitext(os.path.basename(filepath))[0]
+    print("Import GTAV Skeleton {} : begin".format(skelname))
+    with open(filepath, 'r', encoding='utf-8') as reader:
+        string_to_skel(reader, skelname)
+
+    return {'FINISHED'}
+
 
 def string_to_skel(reader, skelName):
     #the skel file must have a "Version" header
-    line = read_until_line_containing(reader,"Version")
+    line = readerutils.read_until_line_containing(reader,"Version")
     
     if line == '':
         return
@@ -23,7 +24,7 @@ def string_to_skel(reader, skelName):
     
     #store the number of bones declared in the file
     #so that we may know if we succeeded in importing all of them
-    line = read_until_line_containing(reader,"NumBones")
+    line = readerutils.read_until_line_containing(reader,"NumBones")
     
     if line == '':
         return
@@ -33,7 +34,7 @@ def string_to_skel(reader, skelName):
     print("Bone count declared in file: {}".format(boneCount))
     
     #jump to the first bone
-    line = read_until_line_containing(reader,"Bone ")
+    line = readerutils.read_until_line_containing(reader,"Bone ")
     
     if line == '':
         return
@@ -62,20 +63,11 @@ def string_to_skel(reader, skelName):
     bpy.ops.object.mode_set(mode="OBJECT")
     
 
-def read_some_data(context, filepath, use_some_setting):
-    skelname = os.path.splitext(os.path.basename(filepath))[0]
-    print("Import GTAV Skeleton {} : begin".format(skelname))
-    with open(filepath, 'r', encoding='utf-8') as reader:
-        string_to_skel(reader, skelname)
-
-    return {'FINISHED'}
-
-
 def recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataList, parentPoseBone = None):
     """jumps to the next Bone line (if necessary) and creates a new bone and its children"""
     
     if "Bone " not in curReaderLine:
-        curReaderLine = read_until_line_containing(reader, "Bone ")
+        curReaderLine = readerutils.read_until_line_containing(reader, "Bone ")
         
         if curReaderLine == '':
             return
@@ -100,7 +92,7 @@ def recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataL
     if "Children" in curReaderLine:
         childCount = int(curReaderLine.split(" ")[1])
         
-        for i in range(childCount):
+        for _ in range(childCount):
             recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataList, newPoseBone)
         
 
@@ -172,7 +164,7 @@ def apply_bone_data(boneData):
         #print("applied location {}".format(poseBone.location))
         
     if boneData.rotationQuat is not None:
-        rotMat = boneData.rotationQuat.to_matrix()
+        #rotMat = boneData.rotationQuat.to_matrix()
 #        boneData.rotationQuat = rotMat.inverted().transposed().to_quaternion()
         #boneData.rotationQuat = boneData.rotationQuat.conjugated()
         poseBone.rotation_quaternion.w = -boneData.rotationQuat.z
@@ -200,6 +192,41 @@ def delete_armature(armature):
     bpy.data.armatures.remove(armature)
 
 class GTABone:
-    
-    def __init__(self):
-        pass
+    pass
+
+
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.types import Operator
+
+class ImportGta5Skel(Operator, ImportHelper):
+    """Operator for importing a .skel separatedly"""
+    bl_idname = "io_gta5ped.import_skel"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Import GTA5 Ped Skeleton (.skel)"
+
+    # ImportHelper mixin class uses this
+    filename_ext = ".skel"
+
+    filter_glob: StringProperty(
+        default="*.skel",
+        options={'HIDDEN'},
+        maxlen=255,  # Max internal buffer length, longer would be clamped.
+    )
+
+    def execute(self, context):
+        return import_skel_from_file(self.filepath)
+
+
+# Only needed if you want to add into a dynamic menu
+def menu_func_import(self, context):
+    self.layout.operator(ImportGta5Skel.bl_idname, text="Import GTA5 Ped Skeleton (.skel)")
+
+
+def register():
+    bpy.utils.register_class(ImportGta5Skel)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+
+
+def unregister():
+    bpy.utils.unregister_class(ImportGta5Skel)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)

@@ -3,10 +3,10 @@ import os.path
 import traceback
 import bmesh
 from mathutils import *
+from . import readerutils
 
 
-
-def read_mesh_file(context, filepath, use_some_setting):
+def import_mesh_from_file(filepath):
     meshname = os.path.splitext(os.path.basename(filepath))[0]
     print("Import GTAV Mesh {} : begin".format(meshname))
     with open(filepath, 'r', encoding='utf-8') as reader:
@@ -14,18 +14,9 @@ def read_mesh_file(context, filepath, use_some_setting):
 
     return {'FINISHED'}
 
-def read_until_line_containing(reader, targetStr):
-    line = reader.readline()
-    
-    while targetStr not in line and line != '':
-        line = reader.readline()
-        
-    return line
-        
-
 def string_to_mesh(reader, meshName):
     #"Version" header
-    line = read_until_line_containing(reader,"Version 165 32")
+    line = readerutils.read_until_line_containing(reader,"Version 165 32")
     
     if line == '':
         return
@@ -33,13 +24,13 @@ def string_to_mesh(reader, meshName):
     print("Version OK")
     
 
-    line = read_until_line_containing(reader,"Geometries")
+    line = readerutils.read_until_line_containing(reader,"Geometries")
     
     if line == '':
         return
     
     #jump to the line opening brackets, then to the next one, where we presume the first vert is
-    line = read_until_line_containing(reader,"{")
+    line = readerutils.read_until_line_containing(reader,"{")
     
     if line == '':
         return
@@ -81,11 +72,13 @@ def join_geometries_with_matindex(geometries, matIndex):
                 baseGeom = geometry
             geomsToJoin.append(geometry)
     
-    contextOvr = {}
-    contextOvr["object"] = contextOvr["active_object"] = baseGeom.meshObj
-    contextOvr["selected_objects"] = contextOvr["selected_editable_objects"] = [g.meshObj for g in geomsToJoin]
+    if(len(geomsToJoin) > 1):
+        #join!
+        contextOvr = {}
+        contextOvr["object"] = contextOvr["active_object"] = baseGeom.meshObj
+        contextOvr["selected_objects"] = contextOvr["selected_editable_objects"] = [g.meshObj for g in geomsToJoin]
+        bpy.ops.object.join(contextOvr)
     
-    bpy.ops.object.join(contextOvr)
 
 
 def build_geometry(geometry, meshName):
@@ -109,9 +102,12 @@ def build_geometry(geometry, meshName):
     
     #faces
     addedFaces = []
-    
+    duplicateFaces = 0
     for i in range(0, len(geometry.indices), 3):
-        addedFaces.append(bm.faces.new(addedVerts[j] for j in geometry.indices[i:i+3]))
+        try:
+            addedFaces.append(bm.faces.new(addedVerts[j] for j in geometry.indices[i:i+3]))
+        except ValueError:
+            duplicateFaces += 1
         
     # uv coords
     uvlayer = bm.loops.layers.uv.verify()
@@ -125,10 +121,11 @@ def build_geometry(geometry, meshName):
     #finally, add the bmesh to the actual mesh
     bm.to_mesh(mesh)
     bm.free()
-    
+
     geometry.mesh = mesh
     geometry.meshObj = meshObj
-    
+    print("built mesh: {} ({} duplicate faces were found and skipped)".format(geometry.meshObj.name, duplicateFaces))
+
 
 def read_geometries(reader, curReaderLine):
     """calls read_geometry_data for each Geometry entry"""
@@ -230,3 +227,40 @@ class GeometryData():
         self.shaderIndex = 0
         self.indices = []
         self.uvCoords = []
+
+
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.types import Operator
+
+class ImportGta5Mesh(Operator, ImportHelper):
+    """Operator for importing a .mesh separatedly"""
+    bl_idname = "io_gta5ped.import_mesh"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Import GTA5 Ped Mesh (.mesh)"
+
+    # ImportHelper mixin class uses this
+    filename_ext = ".mesh"
+
+    filter_glob: StringProperty(
+        default="*.mesh",
+        options={'HIDDEN'},
+        maxlen=255,  # Max internal buffer length, longer would be clamped.
+    )
+
+    def execute(self, context):
+        return import_mesh_from_file(self.filepath)
+
+
+# Only needed if you want to add into a dynamic menu
+def menu_func_import(self, context):
+    self.layout.operator(ImportGta5Mesh.bl_idname, text="Import GTA5 Ped Mesh (.mesh)")
+
+
+def register():
+    bpy.utils.register_class(ImportGta5Mesh)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+
+
+def unregister():
+    bpy.utils.unregister_class(ImportGta5Mesh)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)

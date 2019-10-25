@@ -85,10 +85,7 @@ def recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataL
     
     while "Children" not in curReaderLine and "}" not in curReaderLine:
         curReaderLine, boneData = parse_bone_dataline(reader, boneData)
-        
-    #apply gathered data now
-    #apply_bone_data(newPoseBone, boneData)
-        
+                
     if "Children" in curReaderLine:
         childCount = int(curReaderLine.split(" ")[1])
         
@@ -137,7 +134,6 @@ def parse_bone_dataline(reader, boneData):
         lineData = line.split(" ")
         
         boneData.rotationQuat = Quaternion(map(float,lineData[1:]))
-#        print(boneData.rotationQuat.magnitude)
         
     
     elif "LocalOffset" in line:
@@ -201,7 +197,7 @@ from bpy.types import Operator
 
 class ImportGta5Skel(Operator, ImportHelper):
     """Operator for importing a .skel separatedly"""
-    bl_idname = "io_gta5ped.import_skel"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_idname = "io_gta5ped.import_skel"
     bl_label = "Import GTA5 Ped Skeleton (.skel)"
 
     # ImportHelper mixin class uses this

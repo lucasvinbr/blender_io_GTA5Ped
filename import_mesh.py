@@ -235,7 +235,7 @@ from bpy.types import Operator
 
 class ImportGta5Mesh(Operator, ImportHelper):
     """Operator for importing a .mesh separatedly"""
-    bl_idname = "io_gta5ped.import_mesh"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_idname = "io_gta5ped.import_mesh"
     bl_label = "Import GTA5 Ped Mesh (.mesh)"
 
     # ImportHelper mixin class uses this

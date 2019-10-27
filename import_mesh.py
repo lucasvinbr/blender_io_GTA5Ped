@@ -3,129 +3,57 @@ import os.path
 import traceback
 import bmesh
 from mathutils import *
-from . import readerutils
+from . import reader_utils
+from . import mesh_geometry_utils as geomutils
 
 
 def import_mesh_from_file(filepath):
+    """returns a list of ImportedMesh if successful"""
     meshname = os.path.splitext(os.path.basename(filepath))[0]
     print("Import GTAV Mesh {} : begin".format(meshname))
     with open(filepath, 'r', encoding='utf-8') as reader:
-        string_to_mesh(reader, meshname)
-
-    return {'FINISHED'}
+        return string_to_mesh(reader, meshname)
 
 def string_to_mesh(reader, meshName):
     #"Version" header
-    line = readerutils.read_until_line_containing(reader,"Version 165 32")
+    line = reader_utils.read_until_line_containing(reader,"Version")
     
     if line == '':
         return
     
     print("Version OK")
     
-
-    line = readerutils.read_until_line_containing(reader,"Geometries")
+    line = reader_utils.read_until_line_containing(reader,"Geometries")
     
     if line == '':
         return
     
     #jump to the line opening brackets, then to the next one, where we presume the first vert is
-    line = readerutils.read_until_line_containing(reader,"{")
+    line = reader_utils.read_until_line_containing(reader,"{")
     
     if line == '':
         return
     
     print("Reading Geometries Data...")
     
-        
     try:
         geometries = read_geometries(reader, line)        
     except Exception as e:
         print("Geometry parsing failed! {}.{}".format(e, traceback.format_exc()))
         
     else:
-        #bpy.ops.object.mode_set(mode="OBJECT")
         for geometry in geometries:
-            build_geometry(geometry, meshName)
+            geomutils.build_geometry(geometry, meshName)
         
-        join_geometries_sharing_mats(geometries)
+        print("Joining geometries sharing shaderIndex...")
+        geometries = geomutils.join_geometries_sharing_mats(geometries)
+        importedMeshes = []
         
+        for geom in geometries:
+            importedMeshes.append(ImportedMesh(geom.mesh, geom.meshObj, geom.shaderIndex))
+        print("mesh import successful")
+        return importedMeshes
         
-              
-def join_geometries_sharing_mats(geometries):
-    matIndexesUsed = []
-    
-    for geometry in geometries:
-        if matIndexesUsed.count(geometry.shaderIndex) == 0:
-            matIndexesUsed.append(geometry.shaderIndex)
-            
-    for matIndex in matIndexesUsed:
-        join_geometries_with_matindex(geometries, matIndex)
-        
-def join_geometries_with_matindex(geometries, matIndex):
-    baseGeom = None
-    geomsToJoin = []
-    
-    for geometry in geometries:
-        if geometry.shaderIndex == matIndex:
-            if baseGeom is None:
-                baseGeom = geometry
-            geomsToJoin.append(geometry)
-    
-    if(len(geomsToJoin) > 1):
-        #join!
-        contextOvr = {}
-        contextOvr["object"] = contextOvr["active_object"] = baseGeom.meshObj
-        contextOvr["selected_objects"] = contextOvr["selected_editable_objects"] = [g.meshObj for g in geomsToJoin]
-        bpy.ops.object.join(contextOvr)
-    
-
-
-def build_geometry(geometry, meshName):
-    """uses the stored geometry data to build the mesh"""
-    print("Building Geometry...")
-    
-    mesh, meshObj = create_mesh(meshName)
-    
-    bm = bmesh.new()
-    
-    addedVerts = []
-    
-    #add verts...
-    for i, vertPos in enumerate(geometry.vertPositions):
-        newVert = bm.verts.new(vertPos)
-        newVert.normal = geometry.vertNormals[i]
-        addedVerts.append(newVert)
-    
-    bm.verts.ensure_lookup_table()
-    bm.verts.index_update()
-    
-    #faces
-    addedFaces = []
-    duplicateFaces = 0
-    for i in range(0, len(geometry.indices), 3):
-        try:
-            addedFaces.append(bm.faces.new(addedVerts[j] for j in geometry.indices[i:i+3]))
-        except ValueError:
-            duplicateFaces += 1
-        
-    # uv coords
-    uvlayer = bm.loops.layers.uv.verify()
-    for face in addedFaces:
-        for loop in face.loops:
-            # Get the index of the vertex the loop contains.
-            loop[uvlayer].uv = geometry.uvCoords[loop.vert.index]
-        
-    bm.faces.ensure_lookup_table()
-    
-    #finally, add the bmesh to the actual mesh
-    bm.to_mesh(mesh)
-    bm.free()
-
-    geometry.mesh = mesh
-    geometry.meshObj = meshObj
-    print("built mesh: {} ({} duplicate faces were found and skipped)".format(geometry.meshObj.name, duplicateFaces))
-
 
 def read_geometries(reader, curReaderLine):
     """calls read_geometry_data for each Geometry entry"""
@@ -149,7 +77,7 @@ def read_geometry_data(reader, curReaderLine):
     #we expect to start from the "{" line
     curReaderLine = reader.readline()
     
-    geomData = GeometryData()
+    geomData = geomutils.GeometryData()
     
     while "}" not in curReaderLine and curReaderLine != '':
         if "ShaderIndex" in curReaderLine:
@@ -193,11 +121,19 @@ def parse_vert_dataline(line, geomData):
     #print("vertpos: {}".format(lineDataEntry))
     geomData.vertPositions.append(Vector(map(float,lineDataEntry)))
     
+    #weights
+    lineDataEntry = lineData[1].strip().split(" ")
+    geomData.boneWeights.append(list(map(float, lineDataEntry)))
+
+    #and the bone indexes of the weights
+    lineDataEntry = lineData[2].strip().split(" ")
+    geomData.boneIndexes.append(lineDataEntry)
+
     #normals
     lineDataEntry = lineData[3].strip().split(" ")
     geomData.vertNormals.append(Vector(map(float,lineDataEntry)))
     
-    #uvs (they are flipped!)
+    #uvs (they are flipped in the y axis!)
     lineDataEntry = Vector(map(float, lineData[6].strip().split(" ")))
     lineDataEntry.y *= -1
     
@@ -205,28 +141,12 @@ def parse_vert_dataline(line, geomData):
     
     return line
     
-    
-def create_mesh(meshName):
-    """Creates a mesh object and adds it to the current collection"""
-    mesh = bpy.data.meshes.new(meshName)
-    meshObj = bpy.data.objects.new(meshName, mesh)
-    
-    bpy.context.scene.collection.objects.link(meshObj)
-    
-    return mesh, meshObj
 
-def delete_mesh(mesh):
-    """Deletes the target mesh (mesh obj will also be deleted)"""
-    bpy.data.meshes.remove(mesh)
-    
-class GeometryData():
-    
-    def __init__(self):
-        self.vertPositions = []
-        self.vertNormals = []
-        self.shaderIndex = 0
-        self.indices = []
-        self.uvCoords = []
+class ImportedMesh():
+    def __init__(self, mesh = None, meshObj = None, shaderIndex = 0):
+        self.mesh = mesh
+        self.meshObj = meshObj
+        self.shaderIndex = shaderIndex
 
 
 from bpy_extras.io_utils import ImportHelper
@@ -248,7 +168,8 @@ class ImportGta5Mesh(Operator, ImportHelper):
     )
 
     def execute(self, context):
-        return import_mesh_from_file(self.filepath)
+        import_mesh_from_file(self.filepath)
+        return {'FINISHED'}
 
 
 # Only needed if you want to add into a dynamic menu

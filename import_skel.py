@@ -106,12 +106,16 @@ def parse_bone_dataline(reader, boneData):
         
         boneData.rotationQuat = Quaternion(map(float,lineData[1:]))
         
-    
     elif "LocalOffset" in line:
         lineData = line.split(" ")
         
         boneData.location = Vector(map(float,lineData[1:]))
+    
+    elif "Scale" in line:
+        lineData = line.split(" ")
         
+        boneData.scale = Vector(map(float,lineData[1:]))
+
     return line, boneData
 
 

@@ -38,15 +38,6 @@ def apply_bone_data(boneData):
     
     poseBone = boneData.poseBone
     
-    if boneData.location is not None:
-        poseBone.location.x = -boneData.location.x
-        poseBone.location.y = -boneData.location.y
-        poseBone.location.z = -boneData.location.z
-        
-        #print("LOC BEFORE QUAT MULT : {}".format(poseBone.location))
-                
-        #print("applied location {}".format(poseBone.location))
-        
     if boneData.rotationQuat is not None:
         #rotMat = boneData.rotationQuat.to_matrix()
 #        boneData.rotationQuat = rotMat.inverted().transposed().to_quaternion()
@@ -59,6 +50,22 @@ def apply_bone_data(boneData):
         #poseBone.location = poseBone.rotation_quaternion @ poseBone.location
         
         #print("applied rotation {}".format(poseBone.rotation_quaternion))
+
+    if boneData.location is not None:
+        poseBone.location.x = -boneData.location.x
+        poseBone.location.y = -boneData.location.y
+        poseBone.location.z = -boneData.location.z
+        
+        #print("LOC BEFORE QUAT MULT : {}".format(poseBone.location))
+                
+        #print("applied location {}".format(poseBone.location))
+    if boneData.scale is not None:
+        poseBone.scale.x = boneData.scale.x
+        poseBone.scale.y = boneData.scale.y
+        poseBone.scale.z = boneData.scale.z
+        
+    
+    
     
         
 def create_armature(armatureName):
@@ -82,3 +89,4 @@ class GTABone:
         self.poseBone = None
         self.location = None
         self.rotationQuat = None
+        self.scale = None

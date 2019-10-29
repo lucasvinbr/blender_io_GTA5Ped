@@ -60,7 +60,10 @@ def apply_bone_data(boneData):
                 
         #print("applied location {}".format(poseBone.location))
     if boneData.scale is not None:
-        poseBone.scale.x = boneData.scale.x
+        if "SKEL_ROOT" in boneData.name:
+            poseBone.scale.x = -boneData.scale.x
+        else:
+            poseBone.scale.x = boneData.scale.x
         poseBone.scale.y = boneData.scale.y
         poseBone.scale.z = boneData.scale.z
         

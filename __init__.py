@@ -26,6 +26,7 @@ import bpy
 from . import import_mesh
 from . import import_skel
 from . import import_odr
+from . import import_odd
 
 class GtaIOPanel(bpy.types.Panel):
     """Panel containing import/export options in the Scene tab"""
@@ -45,8 +46,10 @@ def register():
     import_mesh.register()
     import_skel.register()
     import_odr.register()
+    import_odd.register()
 
 def unregister():
     import_mesh.unregister()
     import_skel.unregister()
     import_odr.unregister()
+    import_odd.unregister()

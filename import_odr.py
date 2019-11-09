@@ -5,6 +5,7 @@ from mathutils import *
 from . import reader_utils
 from . import import_skel
 from . import import_mesh
+from . import rigging_utils
 
 
 
@@ -15,9 +16,9 @@ def import_odr_from_file(filepath, alsoApplyData = True):
         odrData = string_to_odr(reader, filename, filepath)
 
     if alsoApplyData:
-        apply_odr_data(odrData)
+        odrData.apply_data()
 
-    return {'FINISHED'}
+    return odrData
 
 
 def string_to_odr(reader, odrName, odrPath):
@@ -35,28 +36,6 @@ def string_to_odr(reader, odrName, odrPath):
     print("done reading ODR data from file {}".format(odrName))
 
     return odrData
-
-
-def apply_odr_data(odrData):
-    """runs import procedures for the data contained in the provided ODRData object"""
-    print("applying data from ODR: {}".format(odrData.path)) 
-    
-    importedSkel = None
-    importedGeoms = []
-
-    if odrData.skeletonFile is not None:
-        importedSkel = import_skel.import_skel_from_file(odrData.skeletonFile)
-
-    for meshPath in odrData.meshPaths:
-        importedGeoms.extend(import_mesh.import_mesh_from_file(meshPath))
-
-    if importedSkel is not None:
-        #meshes already have weights linked to bone indices;
-        #we just have to rename vertex groups to the right names
-        for importedMesh in importedGeoms:
-            rig_geometry_to_skel(importedMesh, importedSkel)
-
-    
 
 def check_relevant_section_start(reader, line, odrData):
     """checks the line content for names of sections of interest, like Shaders"""
@@ -102,9 +81,8 @@ def parse_skeleton(reader, line, odrData):
     skelPath = line.strip().split(" ")[1]
     if skelPath != "null":
         odrPath = os.path.dirname(odrData.path)
-        #odrData.skeletonFile = odrPath + skelPath
-        odrData.skeletonFile = os.path.join(odrPath, skelPath)
-        print("got skeleton at {}".format(odrData.skeletonFile))
+        odrData.skeletonFilePath = os.path.join(odrPath, skelPath)
+        print("got skeleton at {}".format(odrData.skeletonFilePath))
 
 def parse_shaders(reader, line, odrData):
     while "}" not in line:
@@ -137,26 +115,38 @@ def parse_shader_data(reader, line, odrData):
 
     return shader
 
-def rig_geometry_to_skel(geometry, skel):
-    """attaches the geometry mesh to the skel (armature modifier and stuff)
-    and renames vertex groups according to their indices, so that they match the skel's bones"""
-    geometry.meshObj.parent = skel
-    armatureMod = geometry.meshObj.modifiers.new("Armature", 'ARMATURE')
-    armatureMod.object = skel
-
-    vgroups = geometry.meshObj.vertex_groups
-
-    for i, bone in enumerate(skel.pose.bones):
-        if vgroups.find(str(i)) != -1:
-            vgroups[str(i)].name = bone.name
-
 
 class ODRData:
     def __init__(self):
         self.path = None
         self.shaders = []
-        self.skeletonFile = None
+        self.skeletonFilePath = None
         self.meshPaths = []
+
+    def apply_data(self, overrideSkel = None, overrideSkelPath = None):
+        """runs import procedures for the data contained in this ODRData object.
+        If overrideSkel data is provided, it will only be used if this ODRData doesn't have a skeletonFilePath set
+        or if its skeletonFilePath is the same as overrideSkelPath"""
+        print("applying data from ODR: {}".format(self.path)) 
+        
+        importedSkel = None
+        importedGeoms = []
+
+        if self.skeletonFilePath is not None and self.skeletonFilePath != overrideSkelPath:
+            importedSkel = import_skel.import_skel_from_file(self.skeletonFilePath)
+        else:
+            importedSkel = overrideSkel              
+
+        for meshPath in self.meshPaths:
+            importedGeoms.extend(import_mesh.import_mesh_from_file(meshPath))
+
+        if importedSkel is not None:
+            #meshes already have weights linked to bone indices;
+            #we just have to rename vertex groups to the right names
+            for importedMesh in importedGeoms:
+                rigging_utils.rig_geometry_to_skel(importedMesh, importedSkel)
+
+
 
 class ODRShader:
     def __init__(self):
@@ -186,7 +176,8 @@ class ImportGta5ODR(Operator, ImportHelper):
     )
 
     def execute(self, context):
-        return import_odr_from_file(self.filepath)
+        import_odr_from_file(self.filepath)
+        return {'FINISHED'}
 
 
 # Only needed if you want to add into a dynamic menu

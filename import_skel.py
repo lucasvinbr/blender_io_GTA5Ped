@@ -124,7 +124,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 class ImportGta5Skel(Operator, ImportHelper):
-    """Operator for importing a .skel separatedly"""
+    """Imports an armature from a .skel file"""
     bl_idname = "io_gta5ped.import_skel"
     bl_label = "Import GTA5 Ped Skeleton (.skel)"
 

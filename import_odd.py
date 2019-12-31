@@ -81,7 +81,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 class ImportGta5ODD(Operator, ImportHelper):
-    """Imports Material, Mesh and Skeleton data"""
+    """Finds and imports all ODR files declared in the ODD file"""
     bl_idname = "io_gta5ped.import_odd"
     bl_label = "Import GTA5 Ped .ODD File"
 

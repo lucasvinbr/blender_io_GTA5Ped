@@ -162,7 +162,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 class ImportGta5ODR(Operator, ImportHelper):
-    """Imports Material, Mesh and Skeleton data"""
+    """Finds and imports all LOD meshes and skeleton declared in the ODR file"""
     bl_idname = "io_gta5ped.import_odr"
     bl_label = "Import GTA5 Ped .ODR File"
 

@@ -24,6 +24,7 @@ bl_info = {
 
 import bpy
 from . import import_mesh
+from . import export_mesh
 from . import import_skel
 from . import import_odr
 from . import import_odd
@@ -47,9 +48,11 @@ def register():
     import_skel.register()
     import_odr.register()
     import_odd.register()
+    export_mesh.register()
 
 def unregister():
     import_mesh.unregister()
     import_skel.unregister()
     import_odr.unregister()
     import_odd.unregister()
+    export_mesh.unregister()

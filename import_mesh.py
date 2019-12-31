@@ -154,7 +154,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 class ImportGta5Mesh(Operator, ImportHelper):
-    """Operator for importing a .mesh separatedly"""
+    """Imports a mesh object with UVs and weights (but no skeleton) as declared in the .mesh file"""
     bl_idname = "io_gta5ped.import_mesh"
     bl_label = "Import GTA5 Ped Mesh (.mesh)"
 

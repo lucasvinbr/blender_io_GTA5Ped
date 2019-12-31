@@ -136,7 +136,6 @@ def parse_vert_dataline(line, geomData):
     #uvs (they are flipped in the y axis!)
     lineDataEntry = Vector(map(float, lineData[6].strip().split(" ")))
     lineDataEntry.y *= -1
-    
     geomData.uvCoords.append(lineDataEntry)
     
     return line

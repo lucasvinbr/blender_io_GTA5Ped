@@ -60,7 +60,9 @@ def build_geometry(geometry, meshName):
 
     geometry.mesh = mesh
     geometry.meshObj = meshObj
+
     print("Built mesh: {} ({} duplicate faces were found and skipped)".format(geometry.meshObj.name, duplicateFaces))
+    # print("Mesh bounds: {}".format(geometry.calculate_geometry_bounds()))
 
 
 def join_geometries_sharing_mats(geometries):
@@ -92,10 +94,10 @@ def join_geometries_with_matindex(geometries, matIndex):
     
     if(len(geomsToJoin) > 1):
         #join!
-        contextOvr = {}
-        contextOvr["object"] = contextOvr["active_object"] = baseGeom.meshObj
-        contextOvr["selected_objects"] = contextOvr["selected_editable_objects"] = [g.meshObj for g in geomsToJoin]
-        bpy.ops.object.join(contextOvr)
+        contextOverride = {}
+        contextOverride["object"] = contextOverride["active_object"] = baseGeom.meshObj
+        contextOverride["selected_objects"] = contextOverride["selected_editable_objects"] = [g.meshObj for g in geomsToJoin]
+        bpy.ops.object.join(contextOverride)
 
     return baseGeom
 
@@ -127,3 +129,22 @@ class GeometryData():
         self.uvCoords = []
         self.boneIndexes = []
         self.boneWeights = []
+        self.bounds = None
+
+    def calculate_geometry_bounds(self):
+        """fills this geometry's 'bounds' variable; also returns it"""
+        minBounds = Vector()
+        maxBounds = Vector()
+
+        for vertPos in self.vertPositions:
+            for i in range(3):
+                if minBounds[i] > vertPos[i]:
+                    minBounds[i] = vertPos[i]
+                
+                if maxBounds[i] < vertPos[i]:
+                    maxBounds[i] = vertPos[i]
+
+
+        self.bounds = { 'max' : maxBounds, 'min' : minBounds }
+
+        return self.bounds

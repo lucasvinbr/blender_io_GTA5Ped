@@ -13,7 +13,7 @@
 
 bl_info = {
     "name" : "io_GTA5Ped",
-    "author" : "lucasvinbr (openFormats and OpenIv by OpenIV team)",
+    "author" : "lucasvinbr (openFormats and OpenIV by OpenIV team)",
     "description" : "Imports and exports some openFormats ped data",
     "blender" : (2, 80, 0),
     "version" : (0, 0, 1),

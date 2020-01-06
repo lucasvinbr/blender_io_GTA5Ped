@@ -5,10 +5,11 @@ import bmesh
 from mathutils import *
 from . import reader_utils
 from . import mesh_geometry_utils as geomutils
-from . import exporter_utils
+from . import mesh_geometry_datagather_utils as geomreader
+from . import writer_utils
 
 
-def export_selected_mesh(context, filepath):
+def export_selected_mesh(context, filepath, vertDeclarationType):
     print("export to GTA5 .mesh: begin")
 
     exportedObject = context.active_object
@@ -24,7 +25,7 @@ def export_selected_mesh(context, filepath):
     parentSkel = exportedObject.parent
     isRigged = parentSkel is not None and parentSkel.type == "ARMATURE"
 
-    fileBuilder = exporter_utils.OpenFormatsFileComposer()
+    fileBuilder = writer_utils.OpenFormatsFileComposer()
     fileBuilder.writeLine("Version 165 32")
     fileBuilder.openBracket()
 
@@ -40,10 +41,10 @@ def export_selected_mesh(context, filepath):
 
     print("export to GTA5 .mesh: retrieving mesh data from object...")
     #now we duplicate the target mesh, break it by materials and parse them into GeometryData objects
-    geometryDatas = geomutils.meshobj_to_geometries(exportedObject, parentSkel)
+    geometryDatas = geomreader.meshobj_to_geometries(exportedObject, parentSkel)
 
     print("export to GTA5 .mesh: parsing retrieved mesh data...")
-    parse_geometryDatas(geometryDatas, fileBuilder)
+    parse_geometryDatas(geometryDatas, fileBuilder, vertDeclarationType)
 
     fileBuilder.closeBracket()
     print("export to GTA5 .mesh: writing to disk...")
@@ -60,7 +61,7 @@ def parse_iterableFloatData(iterable):
     return " ".join(["{:.8f}".format(numvar) for numvar in iterable])
 
 
-def parse_geometryDatas(geometryDatas, fileBuilder):
+def parse_geometryDatas(geometryDatas, fileBuilder, vertexDeclarationType):
     """adds formatted Bounds and Geometry data to the fileBuilder"""
     fileBuilder.writeLine("Bounds")
     fileBuilder.openBracket()
@@ -86,8 +87,10 @@ def parse_geometryDatas(geometryDatas, fileBuilder):
         fileBuilder.writeLine("ShaderIndex {}".format(geom.shaderIndex))
         fileBuilder.writeLine("Flags -") #not sure what else could go here
         #this declaration seems to define which parameters must be provided for each vertex.
-        #declaration SBED48839 appears to be related to the ped_default.sps shader and requires less and more inferrable params
-        fileBuilder.writeLine("VertexDeclaration SBED48839") 
+        fileBuilder.writeLine("VertexDeclaration {}".format(vertexDeclarationType)) 
+        #S12D0183F -with extra UV and qtangents (used by ped.sps shader)
+        #SD7D22350 -with qtangents (used by ped_hair_cutout_alpha.sps)
+        #SBED48839 -no extra stuff, doesn't seem to support normal mapping etc (used by ped_default.sps)
 
         fileBuilder.writeLine("Indices {}".format(len(geom.indices)))
         fileBuilder.openBracket()
@@ -103,21 +106,49 @@ def parse_geometryDatas(geometryDatas, fileBuilder):
         fileBuilder.writeLine("Vertices {}".format(len(geom.vertPositions)))
         fileBuilder.openBracket()
 
-        for i in range(len(geom.vertPositions)):
-            fileBuilder.writeLine(" / ".join([parse_iterableFloatData(geom.vertPositions[i]),
-                                              parse_iterableFloatData(geom.boneWeights[i]),
-                                              parse_iterableData(geom.boneIndexes[i]),
-                                              parse_iterableFloatData(geom.vertNormals[i]),
-                                              parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
-                                              parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
-                                              parse_iterableFloatData(geom.uvCoords[i])
-                                              ])) 
+        write_verts_by_vertdeclaration(fileBuilder, geom, vertexDeclarationType)
 
         fileBuilder.closeBracket()
 
         fileBuilder.closeBracket()
 
     fileBuilder.closeBracket()
+
+
+def write_verts_by_vertdeclaration(fileBuilder, geom, vertDeclaration):
+    if vertDeclaration == 'S12D0183F':
+        for i in range(len(geom.vertPositions)):
+            fileBuilder.writeLine(" / ".join([parse_iterableFloatData(geom.vertPositions[i]),
+                                                parse_iterableFloatData(geom.boneWeights[i]),
+                                                parse_iterableData(geom.boneIndexes[i]),
+                                                parse_iterableFloatData(geom.vertNormals[i]),
+                                                parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
+                                                parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
+                                                parse_iterableFloatData(geom.uvCoords[i]),
+                                                parse_iterableFloatData(geom.uvCoords[i]), #second UV map... we don't use it for now
+                                                parse_iterableFloatData(geom.qtangents[i]) #this doesn't seem to be the qtangent, actually
+                                                ])) 
+    elif vertDeclaration == 'SD7D22350':
+        for i in range(len(geom.vertPositions)):
+            fileBuilder.writeLine(" / ".join([parse_iterableFloatData(geom.vertPositions[i]),
+                                                parse_iterableFloatData(geom.boneWeights[i]),
+                                                parse_iterableData(geom.boneIndexes[i]),
+                                                parse_iterableFloatData(geom.vertNormals[i]),
+                                                parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
+                                                parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
+                                                parse_iterableFloatData(geom.uvCoords[i]),
+                                                parse_iterableFloatData(geom.qtangents[i]) #this doesn't seem to be the qtangent, actually
+                                                ])) 
+    elif vertDeclaration == 'SBED48839':
+        for i in range(len(geom.vertPositions)):
+            fileBuilder.writeLine(" / ".join([parse_iterableFloatData(geom.vertPositions[i]),
+                                                parse_iterableFloatData(geom.boneWeights[i]),
+                                                parse_iterableData(geom.boneIndexes[i]),
+                                                parse_iterableFloatData(geom.vertNormals[i]),
+                                                parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
+                                                parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
+                                                parse_iterableFloatData(geom.uvCoords[i])
+                                                ])) 
 
 
 def write_to_file(content, filepath):
@@ -130,13 +161,23 @@ from bpy_extras.io_utils import ExportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
-class ExportGta5Mesh(Operator, ExportHelper):
+class ExportGta5Mesh(Operator):
     """Generates a .mesh file from the active mesh"""
     bl_idname = "io_gta5ped.export_mesh"
     bl_label = "Export GTA5 Ped Mesh (.mesh)"
 
-    # ExportHelper mixin class uses this
     filename_ext = ".mesh"
+
+    filepath : StringProperty(
+        subtype='FILE_PATH',
+    )
+
+    filename : StringProperty(
+            name="File Name",
+            description="Name used by the exported file",
+            maxlen=255,
+            subtype='FILE_NAME',
+            )
 
     filter_glob: StringProperty(
         default="*.mesh",
@@ -144,10 +185,40 @@ class ExportGta5Mesh(Operator, ExportHelper):
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
 
+    vertDeclarationType: EnumProperty(
+        name="Vertex Declaration Type",
+        description="""The declaration affects which entries of the geometry's data will be stored.
+         This defines which type of GTA shader the mesh can use.""",
+        items=(
+            ('S12D0183F', "High Opaque (S12D0183F)", "Used in high LOD meshes; supports the ped.sps shader; stores the most information"),
+            ('SD7D22350', "High Alpha (SD7D22350)", "Used in high LOD meshes that have some transparency, like hair; supports the ped_hair_cutout_alpha.sps shader"),
+            ('SBED48839', "Low (SBED48839)", "Used in med and low LOD meshes; supports the ped_default.sps shader; stores the least information"),
+        ),
+        default='S12D0183F',
+    )
+
     def execute(self, context):
-        # import_mesh_from_file(self.filepath)
-        export_selected_mesh(context, self.filepath)
+        export_selected_mesh(context, self.filepath, self.vertDeclarationType)
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        exportedObject = context.active_object
+        if exportedObject is not None:
+            self.filename = exportedObject.name
+
+        if not self.filepath:
+            blend_filepath = context.blend_data.filepath
+            if not blend_filepath:
+                blend_filepath = "untitled"
+            else:
+                blend_filepath = os.path.splitext(blend_filepath)[0]
+                self.filepath = os.path.join(os.path.dirname(blend_filepath), self.filename + self.filename_ext)
+        else:
+            self.filepath = os.path.join(os.path.dirname(self.filepath), self.filename + self.filename_ext)
+
+
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
 
 # Only needed if you want to add into a dynamic menu

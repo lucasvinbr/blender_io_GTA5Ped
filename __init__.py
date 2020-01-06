@@ -19,7 +19,7 @@ bl_info = {
     "version" : (0, 0, 1),
     "location" : "",
     "warning" : "",
-    "category" : "Generic"
+    "category" : "Import-Export"
 }
 
 import bpy

@@ -7,4 +7,4 @@ Materials aren't supported (no import nor export), and it does not look for text
 
 Import-export buttons are found at the "File" menu.
 
-
+A little how-to is in https://github.com/lucasvinbr/blender_io_GTA5Ped/wiki/Getting-a-ped-model-into-GTA5

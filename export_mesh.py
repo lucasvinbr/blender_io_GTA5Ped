@@ -22,6 +22,9 @@ def export_selected_mesh(context, filepath, vertDeclarationType):
         print("export to GTA5 .mesh: active object is not a mesh, aborting")
         return
 
+    #we expect to start the procedure while in object mode
+    bpy.ops.object.mode_set( mode = 'OBJECT' )
+
     parentSkel = exportedObject.parent
     isRigged = parentSkel is not None and parentSkel.type == "ARMATURE"
 

@@ -42,6 +42,10 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
     bm.free()
 
+    #since we're going to rely on selection by material in the next step,
+    #make sure no parts of the mesh are selected
+    bpy.ops.mesh.select_all(action='DESELECT')
+
     #separate and mark each object with its "shaderIndex"
     #but keep the last piece in this object, so that we don't end up with an extra empty geometry
     for i in range(len(objCopy.material_slots) - 1, 0, -1):
@@ -70,7 +74,6 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
 def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex):
     """parses a single-material mesh into a GeometryData object"""
-
     theMesh = meshObj.data
 
     theMesh.calc_tangents()

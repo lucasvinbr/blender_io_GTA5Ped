@@ -16,7 +16,7 @@ bl_info = {
     "author" : "lucasvinbr (openFormats and OpenIV by OpenIV team)",
     "description" : "Imports and exports some openFormats ped data",
     "blender" : (2, 80, 0),
-    "version" : (0, 0, 1),
+    "version" : (0, 0, 2),
     "location" : "",
     "warning" : "",
     "category" : "Import-Export"

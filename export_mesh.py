@@ -9,7 +9,7 @@ from . import mesh_geometry_datagather_utils as geomreader
 from . import writer_utils
 
 
-def export_selected_mesh(context, filepath, vertDeclarationType):
+def export_selected_mesh(context, filepath, vertDeclarationType, startingShaderIndex=0):
     print("export to GTA5 .mesh: begin")
 
     exportedObject = context.active_object
@@ -47,7 +47,7 @@ def export_selected_mesh(context, filepath, vertDeclarationType):
     geometryDatas = geomreader.meshobj_to_geometries(exportedObject, parentSkel)
 
     print("export to GTA5 .mesh: parsing retrieved mesh data...")
-    parse_geometryDatas(geometryDatas, fileBuilder, vertDeclarationType)
+    parse_geometryDatas(geometryDatas, fileBuilder, vertDeclarationType, startingShaderIndex)
 
     fileBuilder.closeBracket()
     print("export to GTA5 .mesh: writing to disk...")
@@ -64,7 +64,7 @@ def parse_iterableFloatData(iterable):
     return " ".join(["{:.8f}".format(numvar) for numvar in iterable])
 
 
-def parse_geometryDatas(geometryDatas, fileBuilder, vertexDeclarationType):
+def parse_geometryDatas(geometryDatas, fileBuilder, vertexDeclarationType, startingShaderIndex=0):
     """adds formatted Bounds and Geometry data to the fileBuilder"""
     fileBuilder.writeLine("Bounds")
     fileBuilder.openBracket()
@@ -87,7 +87,7 @@ def parse_geometryDatas(geometryDatas, fileBuilder, vertexDeclarationType):
         fileBuilder.writeLine("Geometry")
         fileBuilder.openBracket()
 
-        fileBuilder.writeLine("ShaderIndex {}".format(geom.shaderIndex))
+        fileBuilder.writeLine("ShaderIndex {}".format(startingShaderIndex + geom.shaderIndex))
         fileBuilder.writeLine("Flags -") #not sure what else could go here
         #this declaration seems to define which parameters must be provided for each vertex.
         fileBuilder.writeLine("VertexDeclaration {}".format(vertexDeclarationType)) 
@@ -161,7 +161,7 @@ def write_to_file(content, filepath):
 
 
 from bpy_extras.io_utils import ExportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty
 from bpy.types import Operator
 
 class ExportGta5Mesh(Operator):
@@ -200,8 +200,15 @@ class ExportGta5Mesh(Operator):
         default='S12D0183F',
     )
 
+    startingShaderIndex: IntProperty(
+        name="Starting ShaderIndex",
+        description="The ShaderIndex of the object's first material will be set to this value. The next one will be this value plus one, and so on",
+        default=0,
+    )
+
+
     def execute(self, context):
-        export_selected_mesh(context, self.filepath, self.vertDeclarationType)
+        export_selected_mesh(context, self.filepath, self.vertDeclarationType, self.startingShaderIndex)
         return {'FINISHED'}
 
     def invoke(self, context, event):

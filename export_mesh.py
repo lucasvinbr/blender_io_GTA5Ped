@@ -9,23 +9,38 @@ from . import mesh_geometry_datagather_utils as geomreader
 from . import writer_utils
 
 
-def export_selected_mesh(context, filepath, vertDeclarationType, startingShaderIndex=0):
+def export_procedure_start(context, filepath, vertDeclarationType, startingShaderIndex=0, exportAllSelected=False):
+    if exportAllSelected:
+        if len(context.selected_objects) > 0:
+            targetDir = os.path.dirname(filepath)
+            for obj in context.selected_objects:
+                destPath = os.path.join(targetDir, obj.name + ".mesh")
+                export_target_object(obj, destPath, vertDeclarationType, startingShaderIndex)
+        else:
+            print("No objects selected, aborting")
+    else:
+        export_target_object(context.active_object, filepath, vertDeclarationType, startingShaderIndex)
+
+
+def export_target_object(targetObj, filepath, vertDeclarationType, startingShaderIndex=0):
     print("export to GTA5 .mesh: begin")
 
-    exportedObject = context.active_object
-
-    if exportedObject is None:
+    if targetObj is None:
         print("export to GTA5 .mesh: no active object, aborting")
         return
 
-    if exportedObject.type != "MESH":
+    print("target mesh: {}".format(targetObj.name))
+
+    if targetObj.type != "MESH":
         print("export to GTA5 .mesh: active object is not a mesh, aborting")
         return
 
     #we expect to start the procedure while in object mode
+    #...but we only want to do it if something's active
+    bpy.context.view_layer.objects.active = targetObj
     bpy.ops.object.mode_set( mode = 'OBJECT' )
 
-    parentSkel = exportedObject.parent
+    parentSkel = targetObj.parent
     isRigged = parentSkel is not None and parentSkel.type == "ARMATURE"
 
     fileBuilder = writer_utils.OpenFormatsFileComposer()
@@ -44,7 +59,7 @@ def export_selected_mesh(context, filepath, vertDeclarationType, startingShaderI
 
     print("export to GTA5 .mesh: retrieving mesh data from object...")
     #now we duplicate the target mesh, break it by materials and parse them into GeometryData objects
-    geometryDatas = geomreader.meshobj_to_geometries(exportedObject, parentSkel)
+    geometryDatas = geomreader.meshobj_to_geometries(targetObj, parentSkel)
 
     print("export to GTA5 .mesh: parsing retrieved mesh data...")
     parse_geometryDatas(geometryDatas, fileBuilder, vertDeclarationType, startingShaderIndex)
@@ -206,9 +221,16 @@ class ExportGta5Mesh(Operator):
         default=0,
     )
 
+    exportAllSelected: BoolProperty(
+        name="Export All Selected Meshes",
+        description="""Enable batch export of all selected meshes instead of only the active one. 
+    WARNING: the meshes' names will be used instead of the provided filename! Only the directory will be considered""",
+        default=False,
+    )
+
 
     def execute(self, context):
-        export_selected_mesh(context, self.filepath, self.vertDeclarationType, self.startingShaderIndex)
+        export_procedure_start(context, self.filepath, self.vertDeclarationType, self.startingShaderIndex, self.exportAllSelected)
         return {'FINISHED'}
 
     def invoke(self, context, event):

@@ -21,7 +21,7 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
     #limit weights to 4 per vertex and normalize them
     bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
-    bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL')
+    bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
 
     bpy.ops.object.mode_set( mode = 'EDIT' )
 
@@ -37,6 +37,9 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
     seams = [e for e in bm.edges if e.seam]
     # split on seams
     bmesh.ops.split_edges(bm, edges=seams)
+
+    #also triangulate the mesh
+    bmesh.ops.triangulate(bm, faces=bm.faces)
 
     bmesh.update_edit_mesh(objCopy.data)
 

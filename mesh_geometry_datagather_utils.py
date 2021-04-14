@@ -19,10 +19,6 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
     objCopy = bpy.context.active_object
 
-    #limit weights to 4 per vertex and normalize them
-    bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
-    bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
-
     bpy.ops.object.mode_set( mode = 'EDIT' )
 
     #split edges by UV islands, because GTA seems to link all islands if their vertices are connected, messing up the map
@@ -45,8 +41,20 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
     bm.free()
 
-    #since we're going to rely on selection by material in the next step,
-    #make sure no parts of the mesh are selected
+    #the vertex group limiting needs the target vertices to be selected
+    bpy.ops.mesh.select_all(action='SELECT')
+
+    #edit mode changes don't seem to take place until we change mode to object
+    bpy.ops.object.mode_set( mode = 'OBJECT' )
+
+    #limit weights to 4 per vertex and normalize them
+    bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
+    bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
+
+    #return to edit mode for the separation
+    bpy.ops.object.mode_set( mode = 'EDIT' )
+
+    #we're going to select pieces by material, so deselect all verts first
     bpy.ops.mesh.select_all(action='DESELECT')
 
     #separate and mark each object with its "shaderIndex"
@@ -59,8 +67,9 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
     objCopy["Gta5MatIndex"] = 0
 
-    #edit mode changes don't seem to take place until we change mode to object
+    #finally, back again to object mode
     bpy.ops.object.mode_set( mode = 'OBJECT' )
+    
 
     resultingGeometries = []
 

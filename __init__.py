@@ -15,8 +15,8 @@ bl_info = {
     "name" : "io_GTA5Ped",
     "author" : "lucasvinbr (openFormats and OpenIV by OpenIV team)",
     "description" : "Imports and exports some openFormats ped data",
-    "blender" : (2, 80, 0),
-    "version" : (0, 0, 2),
+    "blender" : (2, 92, 0),
+    "version" : (0, 0, 3),
     "location" : "",
     "warning" : "",
     "category" : "Import-Export"

@@ -28,6 +28,9 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
     # unmark
     for e in seams:
         e.seam = False
+
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.select_all(action='SELECT')
     # mark seams from uv islands
     bpy.ops.uv.seams_from_islands()
     seams = [e for e in bm.edges if e.seam]

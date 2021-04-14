@@ -21,6 +21,9 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
     bpy.ops.object.mode_set( mode = 'EDIT' )
 
+    #un-hide all verts
+    bpy.ops.mesh.reveal(select=False)
+
     #split edges by UV islands, because GTA seems to link all islands if their vertices are connected, messing up the map
     bm = bmesh.from_edit_mesh(objCopy.data)
     # old seams

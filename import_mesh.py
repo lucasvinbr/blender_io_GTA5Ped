@@ -137,6 +137,12 @@ def parse_vert_dataline(line, geomData):
     lineDataEntry = Vector(map(float, lineData[6].strip().split(" ")))
     lineDataEntry.y *= -1
     geomData.uvCoords.append(lineDataEntry)
+
+    #second uvs (only available in high opaque)
+    if len(lineData) >= 9:
+        lineDataEntry = Vector(map(float, lineData[7].strip().split(" ")))
+        lineDataEntry.y *= -1
+        geomData.uvCoords2.append(lineDataEntry)
     
     return line
     

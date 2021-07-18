@@ -143,7 +143,7 @@ def write_verts_by_vertdeclaration(fileBuilder, geom, vertDeclaration):
                                                 parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
                                                 parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
                                                 parse_iterableFloatData(geom.uvCoords[i]),
-                                                parse_iterableFloatData(geom.uvCoords[i]), #second UV map... we don't use it for now
+                                                parse_iterableFloatData(geom.uvCoords2[i]), #second UV map... not always used
                                                 parse_iterableFloatData(geom.qtangents[i]) #this doesn't seem to be the qtangent, actually
                                                 ])) 
     elif vertDeclaration == 'SD7D22350':

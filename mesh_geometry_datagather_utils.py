@@ -140,10 +140,18 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex):
             geom.boneIndexes.append([0] * 4)
             geom.boneWeights.append([0.0] * 4)
         
-            
+
+    #store uv layers (always 1, but 2 if we find the second one)     
     uvlayer = bm.loops.layers.uv.verify()
+    uvlayer2 = None
+
+    if len(bm.loops.layers.uv) > 1:
+        uvlayer = bm.loops.layers.uv[0]
+        uvlayer2 = bm.loops.layers.uv[1]
+
     #fill uvCoords and qtangents with blank entries so that we can fill them in any order
     geom.uvCoords = [(0.0, 0.0)] * len(geom.vertPositions)
+    geom.uvCoords2 = [(0.0, 0.0)] * len(geom.vertPositions)
     geom.qtangents = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
 
     #indices and uv
@@ -154,9 +162,12 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex):
             if geom.uvCoords[loop.vert.index] == (0.0, 0.0): #only parse this vert if we still don't have this data about it
                 geom.uvCoords[loop.vert.index] = loop[uvlayer].uv.copy()
                 geom.uvCoords[loop.vert.index].y *= -1
-                geom.qtangents[loop.vert.index] = get_loop_qtangent(theMesh.loops[loop.index])
-
                 
+                if uvlayer2 is not None:
+                    geom.uvCoords2[loop.vert.index] = loop[uvlayer2].uv.copy()
+                    geom.uvCoords2[loop.vert.index].y *= -1
+
+                geom.qtangents[loop.vert.index] = get_loop_qtangent(theMesh.loops[loop.index])
 
     #finally, calculate and store bounds
     geom.calculate_geometry_bounds()

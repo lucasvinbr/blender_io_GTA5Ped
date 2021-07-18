@@ -34,10 +34,17 @@ def build_geometry(geometry, meshName):
         
     # uv coords
     uvlayer = bm.loops.layers.uv.verify()
+    uvlayer2 = None
+
+    if len(geometry.uvCoords2) > 0:
+        uvlayer2 = bm.loops.layers.uv.new('UVMap2')
+    
     for face in addedFaces:
         for loop in face.loops:
             # Get the index of the vertex the loop contains.
             loop[uvlayer].uv = geometry.uvCoords[loop.vert.index]
+            if uvlayer2 is not None:
+                loop[uvlayer2].uv = geometry.uvCoords2[loop.vert.index]
         
     bm.faces.ensure_lookup_table()
 
@@ -127,6 +134,7 @@ class GeometryData():
         self.shaderIndex = 0
         self.indices = [] #list of ints - vertex indices, in the winding order, in order to make faces
         self.uvCoords = [] #list of vectors (y axis is flipped, apparently)
+        self.uvCoords2 = [] #list of vectors (y axis is flipped, apparently). Not necessarily used
         self.boneIndexes = [] #list of lists, each inner list having 4 ints
         self.boneWeights = [] #list of lists, each inner list having 4 floats
         self.bounds = None #dict with 'max' and 'min' vectors

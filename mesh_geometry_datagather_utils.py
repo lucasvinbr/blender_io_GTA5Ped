@@ -37,6 +37,13 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
     # mark seams from uv islands
     bpy.ops.uv.seams_from_islands()
     seams = [e for e in bm.edges if e.seam]
+
+    #store verts from before splitting at the seams, because splitting changes the normals in an undesired way
+    correctedNormalsPositions = {}
+    for e in seams:
+        for vert in e.verts:
+            correctedNormalsPositions[vert.co.copy().freeze()] = vert.normal.copy()
+
     # split on seams
     bmesh.ops.split_edges(bm, edges=seams)
 
@@ -71,6 +78,7 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
         bpy.ops.object.material_slot_select()
         bpy.ops.mesh.separate()
 
+
     objCopy["Gta5MatIndex"] = 0
 
     #finally, back again to object mode
@@ -81,7 +89,7 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
 
     #after separating, all pieces are selected
     for obj in bpy.context.selected_objects:
-        resultingGeometries.append(parse_obj_to_geometrydata(obj, parentSkeleton, obj["Gta5MatIndex"]))
+        resultingGeometries.append(parse_obj_to_geometrydata(obj, parentSkeleton, obj["Gta5MatIndex"], correctedNormalsPositions))
 
     #delete duplicates now
     for obj in bpy.context.selected_objects:
@@ -90,7 +98,7 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
     return resultingGeometries
 
 
-def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex):
+def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNormalsPositionsDict):
     """parses a single-material mesh into a GeometryData object"""
     theMesh = meshObj.data
 
@@ -115,8 +123,9 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex):
 
     #vert positions and normals...
     for vert in bm.verts:
-        geom.vertPositions.append(vert.co.copy())
-        geom.vertNormals.append(vert.normal.copy())
+        vertPos = vert.co.copy().freeze()
+        geom.vertPositions.append(vertPos)
+        geom.vertNormals.append(correctedNormalsPositionsDict[vertPos] if vertPos in correctedNormalsPositionsDict else vert.normal.copy())
 
         #weights...
         if skelData is not None:

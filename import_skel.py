@@ -47,10 +47,10 @@ def string_to_skel(reader, skelName):
     #select new armatureObj, then add bones
     bpy.context.view_layer.objects.active = armatureObj
     
-    boneDataList = []
+    boneDataDict = {}
     
     try:
-        recursive_parse_bone(reader, line, armature, armatureObj, boneDataList)        
+        recursive_parse_bone(reader, line, armature, armatureObj, boneDataDict)        
     except Exception as e:
         print("Bone parsing failed! {}.{}".format(e, traceback.format_exc()))
         
@@ -58,8 +58,9 @@ def string_to_skel(reader, skelName):
         return
         
     print("Building Armature...")
-    for boneData in boneDataList:
-        skelutils.apply_bone_data(boneData)
+    skelutils.recursive_build_bones_from_data(armature, armatureObj, boneDataDict)
+    # for boneData in boneDataList:
+    #     skelutils.apply_bone_data(boneData)
         
     bpy.ops.pose.armature_apply()
     bpy.ops.object.mode_set(mode="OBJECT")
@@ -67,7 +68,7 @@ def string_to_skel(reader, skelName):
     return armatureObj
     
 
-def recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataList, parentPoseBone = None):
+def recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataDict, parentBoneName = ''):
     """jumps to the next Bone line (if necessary) and creates a new bone and its children"""
     
     if "Bone " not in curReaderLine:
@@ -79,13 +80,13 @@ def recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataL
     #get bone name from cur line and adds it to the armature
     boneName = curReaderLine.split(" ")[1]
     
-    boneData = skelutils.create_new_bone(armature, boneName, parentPoseBone)
+    boneData = skelutils.create_new_bone_data(armature, boneName, parentBoneName)
     
-    newPoseBone = armatureObj.pose.bones[boneData.name]
+    #newBone = armatureObj.pose.bones[boneData.name]
     
-    boneData.poseBone = newPoseBone
-    
-    boneDataList.append(boneData)
+    #boneData.poseBone = newPoseBone
+    boneDataDict[boneData.name] = boneData
+    # boneDataDict.append(boneData)
     
     while "Children" not in curReaderLine and "}" not in curReaderLine:
         curReaderLine, boneData = parse_bone_dataline(reader, boneData)
@@ -94,7 +95,7 @@ def recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataL
         childCount = int(curReaderLine.split(" ")[1])
         
         for _ in range(childCount):
-            recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataList, newPoseBone)
+            recursive_parse_bone(reader, curReaderLine, armature, armatureObj, boneDataDict, boneName)
         
 
 def parse_bone_dataline(reader, boneData):

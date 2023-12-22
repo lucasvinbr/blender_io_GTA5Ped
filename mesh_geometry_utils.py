@@ -104,7 +104,11 @@ def join_geometries_with_matindex(geometries, matIndex):
         contextOverride = {}
         contextOverride["object"] = contextOverride["active_object"] = baseGeom.meshObj
         contextOverride["selected_objects"] = contextOverride["selected_editable_objects"] = [g.meshObj for g in geomsToJoin]
-        bpy.ops.object.join(contextOverride)
+        if (4, 00, 0) > bpy.app.version:
+            bpy.ops.object.join(contextOverride)
+        else:
+            with bpy.context.temp_override(**contextOverride):
+                bpy.ops.object.join()
 
     return baseGeom
 

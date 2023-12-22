@@ -72,10 +72,10 @@ def apply_bone_data(boneData):
         
     
     # For some reason we have to mirror the bones on the x-z-plane. 
-    # I don't know why but we could reverse this for a potential skelton export
+    # I don't know why but we could reverse this for a potential skeleton export
     poseBone.location.y *= -1
-    poseBone.rotation_quaternion.x *=-1
-    poseBone.rotation_quaternion.z *=-1
+    poseBone.rotation_quaternion.x *= -1
+    poseBone.rotation_quaternion.z *= -1
     
     
         

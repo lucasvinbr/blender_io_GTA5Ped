@@ -40,21 +40,24 @@ def apply_bone_data(boneData):
     
     if boneData.rotationQuat is not None:
         #rotMat = boneData.rotationQuat.to_matrix()
-#        boneData.rotationQuat = rotMat.inverted().transposed().to_quaternion()
+        #boneData.rotationQuat = rotMat.inverted().transposed().to_quaternion()
         #boneData.rotationQuat = boneData.rotationQuat.conjugated()
-        poseBone.rotation_quaternion.w = -boneData.rotationQuat.z
-        poseBone.rotation_quaternion.x = boneData.rotationQuat.y
-        poseBone.rotation_quaternion.y = -boneData.rotationQuat.x
-        poseBone.rotation_quaternion.z = -boneData.rotationQuat.w
+
+        # Blenders order is [x, y, z, w] but bone Data stores it [w, x, y, z] so we have to shift the values
+        poseBone.rotation_quaternion.w = boneData.rotationQuat.z
+        poseBone.rotation_quaternion.x = boneData.rotationQuat.w
+        poseBone.rotation_quaternion.y = boneData.rotationQuat.x
+        poseBone.rotation_quaternion.z = boneData.rotationQuat.y
         
         #poseBone.location = poseBone.rotation_quaternion @ poseBone.location
         
         #print("applied rotation {}".format(poseBone.rotation_quaternion))
 
     if boneData.location is not None:
-        poseBone.location.x = -boneData.location.x
-        poseBone.location.y = -boneData.location.y
-        poseBone.location.z = -boneData.location.z
+        # to make it clear: these are local offsets from the parent bone in local space coordinates
+        poseBone.location.x = boneData.location.x # x is the bone's forward axis and most offsets are applied here
+        poseBone.location.y = boneData.location.y
+        poseBone.location.z = boneData.location.z
         
         #print("LOC BEFORE QUAT MULT : {}".format(poseBone.location))
                 
@@ -68,6 +71,11 @@ def apply_bone_data(boneData):
         poseBone.scale.z = boneData.scale.z
         
     
+    # For some reason we have to mirror the bones on the x-z-plane. 
+    # I don't know why but we could reverse this for a potential skeleton export
+    poseBone.location.y *= -1
+    poseBone.rotation_quaternion.x *= -1
+    poseBone.rotation_quaternion.z *= -1
     
     
         

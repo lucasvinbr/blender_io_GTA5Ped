@@ -133,6 +133,12 @@ def parse_vert_dataline(line, geomData):
     lineDataEntry = lineData[3].strip().split(" ")
     geomData.vertNormals.append(Vector(map(float,lineDataEntry)))
     
+    #vertex colors
+    lineDataEntry = Vector(map(float, lineData[4].strip().split(" ")))
+    geomData.vColor.append(lineDataEntry)
+    lineDataEntry = Vector(map(float, lineData[5].strip().split(" ")))
+    geomData.vColor2.append(lineDataEntry)
+
     #uvs (they are flipped in the y axis!)
     lineDataEntry = Vector(map(float, lineData[6].strip().split(" ")))
     lineDataEntry.y *= -1

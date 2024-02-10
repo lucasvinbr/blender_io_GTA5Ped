@@ -38,6 +38,10 @@ def build_geometry(geometry, meshName):
 
     if len(geometry.uvCoords2) > 0:
         uvlayer2 = bm.loops.layers.uv.new('UVMap2')
+
+    # .. and vertex colour
+    vcLayer = bm.loops.layers.color.new('Color 1')
+    vcLayer2 = bm.loops.layers.color.new('Color 2')
     
     for face in addedFaces:
         for loop in face.loops:
@@ -45,6 +49,9 @@ def build_geometry(geometry, meshName):
             loop[uvlayer].uv = geometry.uvCoords[loop.vert.index]
             if uvlayer2 is not None:
                 loop[uvlayer2].uv = geometry.uvCoords2[loop.vert.index]
+            
+            loop[vcLayer] = geometry.vColor[loop.vert.index]
+            loop[vcLayer2] = geometry.vColor2[loop.vert.index]
         
     bm.faces.ensure_lookup_table()
 
@@ -139,10 +146,12 @@ class GeometryData():
         self.indices = [] #list of ints - vertex indices, in the winding order, in order to make faces
         self.uvCoords = [] #list of vectors (y axis is flipped, apparently)
         self.uvCoords2 = [] #list of vectors (y axis is flipped, apparently). Not necessarily used
+        self.vColor = [] # list of vertex colors from channel 1
+        self.vColor2 = [] # list of vertex colors from channel 2
         self.boneIndexes = [] #list of lists, each inner list having 4 ints
         self.boneWeights = [] #list of lists, each inner list having 4 floats
         self.bounds = None #dict with 'max' and 'min' vectors
-        self.qtangents = [] #list of quaternions, one per vertex, representing tangent space (for normal mapping)
+        self.qtangents = [] #list of tangents (x,y,z) and bitangents signs (w), one per vertex, representing tangent space (for normal mapping)
 
     def calculate_geometry_bounds(self):
         """fills this geometry's 'bounds' variable; also returns it"""

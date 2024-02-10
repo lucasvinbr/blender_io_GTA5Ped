@@ -139,14 +139,14 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
                 vertBoneWeights.append(weight)
 
             #if this vert has less than 4 bones with weights, pad the indexes and weights lists with empty entries
-            vertBoneIndexes += [0] * (4 - len(vertBoneIndexes))
+            vertBoneIndexes += [1] * (4 - len(vertBoneIndexes))
             vertBoneWeights += [0.0] * (4 - len(vertBoneWeights))
 
             geom.boneIndexes.append(vertBoneIndexes)
             geom.boneWeights.append(vertBoneWeights)
 
         else:
-            geom.boneIndexes.append([0] * 4)
+            geom.boneIndexes.append([1] * 4)
             geom.boneWeights.append([0.0] * 4)
         
 
@@ -158,17 +158,33 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
         uvlayer = bm.loops.layers.uv[0]
         uvlayer2 = bm.loops.layers.uv[1]
 
+    #vertex color layers (should be two but who knows what people are doing)
+    vcLayer = None
+    vcLayer2 = None
+
+    if len(bm.loops.layers.color) > 0:
+        vcLayer = bm.loops.layers.color[0]
+
+        if len(bm.loops.layers.color) > 1:
+            vcLayer2 = bm.loops.layers.color[1]
+
     #fill uvCoords and qtangents with blank entries so that we can fill them in any order
-    geom.uvCoords = [(0.0, 0.0)] * len(geom.vertPositions)
-    geom.uvCoords2 = [(0.0, 0.0)] * len(geom.vertPositions)
+    geom.uvCoords = [(1.0, -1.0)] * len(geom.vertPositions)
+    geom.uvCoords2 = [(1.0, -1.0)] * len(geom.vertPositions)
+    geom.vColor = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
+    geom.vColor2 = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
     geom.qtangents = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
+
+    # tangents and bitangents
+    tangentsLayer = "tangents"
+    bitangentssignLayer = "bitangent_sign"
 
     #indices and uv
     for face in bm.faces:
         for vert in face.verts:
             geom.indices.append(vert.index)
         for loop in face.loops:
-            if geom.uvCoords[loop.vert.index] == (0.0, 0.0): #only parse this vert if we still don't have this data about it
+            if geom.uvCoords[loop.vert.index] == (1.0, -1.0): #only parse this vert if we still don't have this data about it
                 geom.uvCoords[loop.vert.index] = loop[uvlayer].uv.copy()
                 geom.uvCoords[loop.vert.index].y *= -1
                 
@@ -176,7 +192,11 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
                     geom.uvCoords2[loop.vert.index] = loop[uvlayer2].uv.copy()
                     geom.uvCoords2[loop.vert.index].y *= -1
 
-                geom.qtangents[loop.vert.index] = get_loop_qtangent(theMesh.loops[loop.index])
+                geom.vColor[loop.vert.index] = loop[vcLayer].copy()
+                if vcLayer2 is not None:
+                    geom.vColor2[loop.vert.index] = loop[vcLayer2].copy()
+
+                geom.qtangents[loop.vert.index] = get_loop_tangent(theMesh.loops[loop.index])
 
     #finally, calculate and store bounds
     geom.calculate_geometry_bounds()
@@ -185,7 +205,8 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
 
     return geom
 
-
+# This is not really what we need here. Keeping it here but if it is not needed elsewhere it could be deleted
+# Also haven't renamed "qtangents" into "tangents" throughout the code yet.
 def get_loop_qtangent(loop):
     """returns a quaternion containing combined tangent data from the target loop 
     (mesh.calc_tangents should already have been called!)"""
@@ -202,3 +223,7 @@ def get_loop_qtangent(loop):
     loopQuat = loopMatrix.to_quaternion()
 
     return list(reversed(loopQuat)) #apparently, the quaternion is stored as ZYXW instead of WXYZ in the .mesh file
+
+def get_loop_tangent(loop):
+    """the tangents data required for OpenIV"""
+    return list(loop.tangent) + [loop.bitangent_sign]

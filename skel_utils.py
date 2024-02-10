@@ -39,46 +39,19 @@ def apply_bone_data(boneData):
     poseBone = boneData.poseBone
     
     if boneData.rotationQuat is not None:
-        #rotMat = boneData.rotationQuat.to_matrix()
-        #boneData.rotationQuat = rotMat.inverted().transposed().to_quaternion()
-        #boneData.rotationQuat = boneData.rotationQuat.conjugated()
-
         # Blenders order is [x, y, z, w] but bone Data stores it [w, x, y, z] so we have to shift the values
         poseBone.rotation_quaternion.w = boneData.rotationQuat.z
         poseBone.rotation_quaternion.x = boneData.rotationQuat.w
         poseBone.rotation_quaternion.y = boneData.rotationQuat.x
         poseBone.rotation_quaternion.z = boneData.rotationQuat.y
-        
-        #poseBone.location = poseBone.rotation_quaternion @ poseBone.location
-        
-        #print("applied rotation {}".format(poseBone.rotation_quaternion))
 
     if boneData.location is not None:
-        # to make it clear: these are local offsets from the parent bone in local space coordinates
+        # To make it clear: these are local offsets from the parent bone in local space coordinates
         poseBone.location.x = boneData.location.x # x is the bone's forward axis and most offsets are applied here
         poseBone.location.y = boneData.location.y
         poseBone.location.z = boneData.location.z
-        
-        #print("LOC BEFORE QUAT MULT : {}".format(poseBone.location))
-                
-        #print("applied location {}".format(poseBone.location))
-    if boneData.scale is not None:
-        if "SKEL_ROOT" in boneData.name:
-            poseBone.scale.x = -boneData.scale.x
-        else:
-            poseBone.scale.x = boneData.scale.x
-        poseBone.scale.y = boneData.scale.y
-        poseBone.scale.z = boneData.scale.z
-        
-    
-    # For some reason we have to mirror the bones on the x-z-plane. 
-    # I don't know why but we could reverse this for a potential skeleton export
-    poseBone.location.y *= -1
-    poseBone.rotation_quaternion.x *= -1
-    poseBone.rotation_quaternion.z *= -1
-    
-    
-        
+
+
 def create_armature(armatureName):
     """Creates an armature object and adds it to the current collection"""
     armature = bpy.data.armatures.new(armatureName)

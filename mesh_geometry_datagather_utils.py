@@ -61,8 +61,9 @@ def meshobj_to_geometries(meshObj, parentSkeleton):
     bpy.ops.object.mode_set( mode = 'OBJECT' )
 
     #limit weights to 4 per vertex and normalize them
-    bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
-    bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
+    if(len(objCopy.vertex_groups) > 0):
+        bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
+        bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
 
     #return to edit mode for the separation
     bpy.ops.object.mode_set( mode = 'EDIT' )
@@ -169,8 +170,8 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
             vcLayer2 = bm.loops.layers.color[1]
 
     #fill uvCoords and qtangents with blank entries so that we can fill them in any order
-    geom.uvCoords = [(1.0, -1.0)] * len(geom.vertPositions)
-    geom.uvCoords2 = [(1.0, -1.0)] * len(geom.vertPositions)
+    geom.uvCoords = [(0.0, 0.0)] * len(geom.vertPositions)
+    geom.uvCoords2 = [(0.0, 0.0)] * len(geom.vertPositions)
     geom.vColor = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
     geom.vColor2 = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
     geom.qtangents = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
@@ -184,7 +185,7 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
         for vert in face.verts:
             geom.indices.append(vert.index)
         for loop in face.loops:
-            if geom.uvCoords[loop.vert.index] == (1.0, -1.0): #only parse this vert if we still don't have this data about it
+            if geom.uvCoords[loop.vert.index] == (0.0, 0.0): #only parse this vert if we still don't have this data about it
                 geom.uvCoords[loop.vert.index] = loop[uvlayer].uv.copy()
                 geom.uvCoords[loop.vert.index].y *= -1
                 
@@ -192,9 +193,10 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
                     geom.uvCoords2[loop.vert.index] = loop[uvlayer2].uv.copy()
                     geom.uvCoords2[loop.vert.index].y *= -1
 
-                geom.vColor[loop.vert.index] = loop[vcLayer].copy()
-                if vcLayer2 is not None:
-                    geom.vColor2[loop.vert.index] = loop[vcLayer2].copy()
+                if vcLayer is not None:
+                    geom.vColor[loop.vert.index] = loop[vcLayer].copy()
+                    if vcLayer2 is not None:
+                        geom.vColor2[loop.vert.index] = loop[vcLayer2].copy()
 
                 geom.qtangents[loop.vert.index] = get_loop_tangent(theMesh.loops[loop.index])
 

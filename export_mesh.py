@@ -171,6 +171,9 @@ def adjust_bone_weights(weights):
 
     return weights_adjusted
 
+def adjust_vertex_color(color):
+    return [int(colorvar*255) for colorvar in color]
+
 def write_verts_by_vertdeclaration(fileBuilder, geom, vertDeclaration):
     if vertDeclaration == 'S12D0183F':
         for i in range(len(geom.vertPositions)):
@@ -178,8 +181,8 @@ def write_verts_by_vertdeclaration(fileBuilder, geom, vertDeclaration):
                                                 parse_iterableFloatData(adjust_bone_weights(geom.boneWeights[i])),
                                                 parse_iterableData(geom.boneIndexes[i]),
                                                 parse_iterableFloatData(geom.vertNormals[i]),
-                                                parse_iterableIntData(geom.vColor[i]*255),
-                                                parse_iterableIntData(geom.vColor2[i]*255),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor[i])),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor2[i])),
                                                 parse_iterableFloatData(geom.uvCoords[i]),
                                                 parse_iterableFloatData(geom.uvCoords2[i]), #second UV map... not always used
                                                 parse_iterableFloatData(geom.qtangents[i])
@@ -190,8 +193,8 @@ def write_verts_by_vertdeclaration(fileBuilder, geom, vertDeclaration):
                                                 parse_iterableFloatData(adjust_bone_weights(geom.boneWeights[i])),
                                                 parse_iterableData(geom.boneIndexes[i]),
                                                 parse_iterableFloatData(geom.vertNormals[i]),
-                                                parse_iterableIntData(geom.vColor[i]*255),
-                                                parse_iterableIntData(geom.vColor2[i]*255),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor[i])),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor2[i])),
                                                 parse_iterableFloatData(geom.uvCoords[i]),
                                                 parse_iterableFloatData(geom.qtangents[i])
                                                 ])) 
@@ -201,8 +204,8 @@ def write_verts_by_vertdeclaration(fileBuilder, geom, vertDeclaration):
                                                 parse_iterableFloatData(adjust_bone_weights(geom.boneWeights[i])),
                                                 parse_iterableData(geom.boneIndexes[i]),
                                                 parse_iterableFloatData(geom.vertNormals[i]),
-                                                parse_iterableIntData(geom.vColor[i]*255),
-                                                parse_iterableIntData(geom.vColor2[i]*255),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor[i])),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor2[i])),
                                                 parse_iterableFloatData(geom.uvCoords[i])
                                                 ])) 
 

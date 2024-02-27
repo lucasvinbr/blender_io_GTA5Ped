@@ -78,6 +78,10 @@ def parse_iterableFloatData(iterable):
     """utility method for writing vectors and lists, limiting the precision of floats"""
     return " ".join(["{:.8f}".format(numvar) for numvar in iterable])
 
+def parse_iterableIntData(iterable):
+    """utility method for writing vectors and lists, limiting the precision to integers"""
+    return " ".join(["{:.0f}".format(numvar) for numvar in iterable])
+
 
 def parse_geometryDatas(geometryDatas, fileBuilder, vertexDeclarationType, startingShaderIndex=0):
     """adds formatted Bounds and Geometry data to the fileBuilder"""
@@ -132,39 +136,76 @@ def parse_geometryDatas(geometryDatas, fileBuilder, vertexDeclarationType, start
 
     fileBuilder.closeBracket()
 
+def adjust_bone_weights(weights):
+    """
+    GTA5 requires bone weights to be normalized and quantized in the 0-255 range. 
+    Otherwise it can happen that vertex positions become distorted. Especial for facial bones.
+    As weights are stored as floats in blender and the mesh file we have to adjust the float values
+    to be in sync with their integer counterpart.
+    """
+    wSum = sum(weights)
+    if wSum <= 0: return weights
+
+    # first normalize weights
+    # usually incoming weights are already normalised - but to be on the save side
+    Max = max(weights)
+    weights_normalised = [weight / wSum for weight in weights]
+
+    # convert to 0-255 range
+    weights_normalised_255 = [round(weight_normalised * 255) for weight_normalised in weights_normalised]
+
+    # fix normalisation by making sure the sum is always 255
+    wSum_255 = sum(weights_normalised_255)
+    wSumOffset = 255 - wSum_255
+    if wSumOffset != 0:
+        step = 1 if wSumOffset > 0 else -1
+        while wSumOffset != 0:
+            for idx in range(len(weights_normalised_255)):
+                if(weights_normalised_255[idx] > 0):
+                    weights_normalised_255[idx] += step
+                    wSumOffset -= step
+                if wSumOffset == 0: break
+
+    # convert back into 0-1 range
+    weights_adjusted = [weight_normalised_255 / 255 for weight_normalised_255 in weights_normalised_255]
+
+    return weights_adjusted
+
+def adjust_vertex_color(color):
+    return [int(colorvar*255) for colorvar in color]
 
 def write_verts_by_vertdeclaration(fileBuilder, geom, vertDeclaration):
     if vertDeclaration == 'S12D0183F':
         for i in range(len(geom.vertPositions)):
             fileBuilder.writeLine(" / ".join([parse_iterableFloatData(geom.vertPositions[i]),
-                                                parse_iterableFloatData(geom.boneWeights[i]),
+                                                parse_iterableFloatData(adjust_bone_weights(geom.boneWeights[i])),
                                                 parse_iterableData(geom.boneIndexes[i]),
                                                 parse_iterableFloatData(geom.vertNormals[i]),
-                                                parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
-                                                parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor[i])),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor2[i])),
                                                 parse_iterableFloatData(geom.uvCoords[i]),
                                                 parse_iterableFloatData(geom.uvCoords2[i]), #second UV map... not always used
-                                                parse_iterableFloatData(geom.qtangents[i]) #this doesn't seem to be the qtangent, actually
+                                                parse_iterableFloatData(geom.qtangents[i])
                                                 ])) 
     elif vertDeclaration == 'SD7D22350':
         for i in range(len(geom.vertPositions)):
             fileBuilder.writeLine(" / ".join([parse_iterableFloatData(geom.vertPositions[i]),
-                                                parse_iterableFloatData(geom.boneWeights[i]),
+                                                parse_iterableFloatData(adjust_bone_weights(geom.boneWeights[i])),
                                                 parse_iterableData(geom.boneIndexes[i]),
                                                 parse_iterableFloatData(geom.vertNormals[i]),
-                                                parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
-                                                parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor[i])),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor2[i])),
                                                 parse_iterableFloatData(geom.uvCoords[i]),
-                                                parse_iterableFloatData(geom.qtangents[i]) #this doesn't seem to be the qtangent, actually
+                                                parse_iterableFloatData(geom.qtangents[i])
                                                 ])) 
     elif vertDeclaration == 'SBED48839':
         for i in range(len(geom.vertPositions)):
             fileBuilder.writeLine(" / ".join([parse_iterableFloatData(geom.vertPositions[i]),
-                                                parse_iterableFloatData(geom.boneWeights[i]),
+                                                parse_iterableFloatData(adjust_bone_weights(geom.boneWeights[i])),
                                                 parse_iterableData(geom.boneIndexes[i]),
                                                 parse_iterableFloatData(geom.vertNormals[i]),
-                                                parse_iterableData([255] * 4), #vertex color? not sure about what this entry means
-                                                parse_iterableData([0] * 4), #no idea about this one either, but often it's all zeroes
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor[i])),
+                                                parse_iterableIntData(adjust_vertex_color(geom.vColor2[i])),
                                                 parse_iterableFloatData(geom.uvCoords[i])
                                                 ])) 
 

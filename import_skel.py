@@ -4,6 +4,7 @@ import traceback
 from mathutils import *
 from . import reader_utils
 from . import skel_utils as skelutils
+from math import radians
 
 def import_skel_from_file(filepath):
     """returns an armature object if successful"""
@@ -64,6 +65,14 @@ def string_to_skel(reader, skelName):
     bpy.ops.pose.armature_apply()
     bpy.ops.object.mode_set(mode="OBJECT")
     print("Created skeleton {} successfully".format(skelName))
+
+    # we have to rotate the armature object to face the correct direction
+    armatureObj.rotation_euler = (0,0,radians(180))
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = armatureObj
+    armatureObj.select_set(True)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+
     return armatureObj
     
 

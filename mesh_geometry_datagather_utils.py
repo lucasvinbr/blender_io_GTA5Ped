@@ -172,7 +172,7 @@ def parse_obj_to_geometrydata(meshObj, parentSkeleton, shaderIndex, correctedNor
     #fill uvCoords and qtangents with blank entries so that we can fill them in any order
     geom.uvCoords = [(0.0, 0.0)] * len(geom.vertPositions)
     geom.uvCoords2 = [(0.0, 0.0)] * len(geom.vertPositions)
-    geom.vColor = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
+    geom.vColor = [(1.0, 1.0, 1.0, 1.0)] * len(geom.vertPositions)
     geom.vColor2 = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
     geom.qtangents = [(0.0, 0.0, 0.0, 0.0)] * len(geom.vertPositions)
 

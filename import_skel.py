@@ -8,8 +8,10 @@ from math import radians
 
 def import_skel_from_file(filepath):
     """returns an armature object if successful"""
+    filepath = reader_utils.replace_slashes_according_to_os(filepath)
     skelname = os.path.splitext(os.path.basename(filepath))[0]
     print("Import GTAV Skeleton {} : begin".format(skelname))
+
     with open(filepath, 'r', encoding='utf-8') as reader:
         return string_to_skel(reader, skelname)
 

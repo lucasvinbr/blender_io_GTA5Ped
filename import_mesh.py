@@ -9,6 +9,7 @@ from . import mesh_geometry_utils as geomutils
 
 def import_mesh_from_file(filepath):
     """returns a list of ImportedMesh if successful"""
+    filepath = reader_utils.replace_slashes_according_to_os(filepath)
     meshname = os.path.splitext(os.path.basename(filepath))[0]
     print("Import GTAV Mesh {} : begin".format(meshname))
     with open(filepath, 'r', encoding='utf-8') as reader:

@@ -1,5 +1,5 @@
 import bpy
-import os.path
+import os
 import traceback
 from mathutils import *
 from . import reader_utils

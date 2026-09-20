@@ -10,6 +10,7 @@ from . import rigging_utils
 
 
 def import_odr_from_file(filepath, alsoApplyData = True):
+    filepath = reader_utils.replace_slashes_according_to_os(filepath)
     filename = os.path.splitext(os.path.basename(filepath))[0]
     print("Import GTAV ODR {} : begin".format(filename))
     with open(filepath, 'r', encoding='utf-8') as reader:
